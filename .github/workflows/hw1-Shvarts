@@ -1,0 +1,75 @@
+package main
+
+import (
+	"bufio"
+	"errors"
+	"fmt"
+	"os"
+	"sort"
+	"strings"
+)
+
+func findUniqueLines(filename string) ([]string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка открытия файла: %v", err)
+	}
+	defer file.Close()
+
+	linesMap := make(map[string]int)
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		linesMap[line]++
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка сканирования файла: %v", err)
+	}
+
+	uniqueLines := make([]string, 0)
+	for line, count := range linesMap {
+		if count == 1 {
+			uniqueLines = append(uniqueLines, line)
+		}
+	}
+
+	sort.Strings(uniqueLines)
+	return uniqueLines, nil
+}
+
+func processUniqueLines(uniqueLines []string, outputFilename string) error {
+	outputFile, err := os.Create(outputFilename)
+	if err != nil {
+		return fmt.Errorf("ошибка создания файла: %v", err)
+	}
+	defer outputFile.Close()
+
+	for _, line := range uniqueLines {
+		upperLine := strings.ToUpper(line)
+		byteCount := len(upperLine)
+		_, err := outputFile.WriteString(fmt.Sprintf("%s - %d байт\n", upperLine, byteCount))
+		if err != nil {
+			return fmt.Errorf("ошибка записи в файл: %v", err)
+		}
+	}
+
+	return nil
+}
+func main() {
+	if len(os.Args) < 2 {
+		fmt.Println(errors.New("Передайте имя файла "))
+		return
+	}
+	filename := os.Args[1]
+	uniqueLines, err := findUniqueLines(filename)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	err = processUniqueLines(uniqueLines, "result.txt")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("Откройте файл result.txt, все готов")
+}
